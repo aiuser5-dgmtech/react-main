@@ -12,3 +12,12 @@ export interface LoanDecision {
   interestRate: number | null;
   reason: string;
 }
+
+export interface LoanHistoryItem {
+  applicantId: string;
+  loanId: string;
+  amount: number;
+  status: 'APPROVED' | 'REJECTED' | 'PENDING';
+  submittedAt: string;
+  decision?: LoanDecision;
+}

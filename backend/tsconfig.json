@@ -9,5 +9,6 @@
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true
-  }
+  },
+  "exclude": ["jest.config.ts", "src/**/__tests__/**", "src/**/*.test.ts"]
 }
