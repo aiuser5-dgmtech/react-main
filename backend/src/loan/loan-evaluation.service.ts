@@ -70,7 +70,17 @@ export class LoanEvaluationService {
     try {
       const decision = this.rulesEngine.evaluate(request);
 
-      logger.info({ applicantId: request.applicantId, status: decision.status }, 'Loan evaluation complete');
+      if (decision.status === 'APPROVED') {
+        logger.info(
+          { applicantId: request.applicantId, status: decision.status, interestRate: decision.interestRate },
+          'Loan approved'
+        );
+      } else {
+        logger.warn(
+          { applicantId: request.applicantId, status: decision.status, reason: decision.reason },
+          'Loan rejected'
+        );
+      }
 
       return decision;
     } catch (error: unknown) {
