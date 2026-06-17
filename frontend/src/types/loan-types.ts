@@ -21,3 +21,10 @@ export interface LoanHistoryItem {
   submittedAt: string;
   decision?: LoanDecision;
 }
+
+export interface EligibilitySummaryResponse {
+  eligible: boolean;
+  minimumCreditScore: number;
+  applicantScore: number;
+  message: string;
+}

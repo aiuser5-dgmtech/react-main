@@ -1,6 +1,8 @@
 import pino from 'pino';
 import type { LoanDecision, LoanHistoryItem, LoanRequest } from './loan-types';
 import type { LoanRulesEngine } from './loan-rules.engine';
+import { EligibilityRulesEngine } from './eligibility.rules';
+import { EligibilitySummaryResponseSchema, type EligibilitySummaryResponse } from './eligibility.schema';
 
 const logger = pino({ name: 'loan-evaluation-service' });
 
@@ -46,9 +48,11 @@ const loanHistoryByApplicant: Record<string, LoanHistoryItem[]> = {
 
 export class LoanEvaluationService {
   private readonly rulesEngine: LoanRulesEngine;
+  private readonly eligibilityEngine: EligibilityRulesEngine;
 
   constructor(rulesEngine: LoanRulesEngine) {
     this.rulesEngine = rulesEngine;
+    this.eligibilityEngine = new EligibilityRulesEngine();
   }
 
   evaluate(request: LoanRequest): LoanDecision {
@@ -81,5 +85,32 @@ export class LoanEvaluationService {
   getHistory(applicantId: string): LoanHistoryItem[] {
     logger.info({ applicantId }, 'Fetching loan history');
     return loanHistoryByApplicant[applicantId] ?? [];
+  }
+
+  getEligibilitySummary(applicantId: string, applicantCreditScore: number): EligibilitySummaryResponse {
+    logger.info({ applicantId, applicantCreditScore }, 'Calculating eligibility summary');
+
+    try {
+      const eligibilityResult = this.eligibilityEngine.calculateEligibility(applicantId, applicantCreditScore);
+
+      const response: EligibilitySummaryResponse = {
+        eligible: eligibilityResult.eligible,
+        minimumCreditScore: eligibilityResult.minimumCreditScore,
+        applicantScore: applicantCreditScore,
+        message: eligibilityResult.message,
+      };
+
+      const validated = EligibilitySummaryResponseSchema.parse(response);
+
+      logger.info({ applicantId, eligible: validated.eligible }, 'Eligibility summary calculated');
+
+      return validated;
+    } catch (error: unknown) {
+      const typedError = error instanceof Error ? error : new Error('Failed to calculate eligibility summary');
+
+      logger.error({ err: typedError, applicantId }, 'Failed to calculate eligibility summary');
+
+      throw typedError;
+    }
   }
 }

@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoanEvaluationService = void 0;
 const pino_1 = __importDefault(require("pino"));
+const eligibility_rules_1 = require("./eligibility.rules");
+const eligibility_schema_1 = require("./eligibility.schema");
 const logger = (0, pino_1.default)({ name: 'loan-evaluation-service' });
 const loanHistoryByApplicant = {
     APP001: [
@@ -48,6 +50,7 @@ const loanHistoryByApplicant = {
 class LoanEvaluationService {
     constructor(rulesEngine) {
         this.rulesEngine = rulesEngine;
+        this.eligibilityEngine = new eligibility_rules_1.EligibilityRulesEngine();
     }
     evaluate(request) {
         logger.info({
@@ -71,6 +74,26 @@ class LoanEvaluationService {
     getHistory(applicantId) {
         logger.info({ applicantId }, 'Fetching loan history');
         return loanHistoryByApplicant[applicantId] ?? [];
+    }
+    getEligibilitySummary(applicantId, applicantCreditScore) {
+        logger.info({ applicantId, applicantCreditScore }, 'Calculating eligibility summary');
+        try {
+            const eligibilityResult = this.eligibilityEngine.calculateEligibility(applicantId, applicantCreditScore);
+            const response = {
+                eligible: eligibilityResult.eligible,
+                minimumCreditScore: eligibilityResult.minimumCreditScore,
+                applicantScore: applicantCreditScore,
+                message: eligibilityResult.message,
+            };
+            const validated = eligibility_schema_1.EligibilitySummaryResponseSchema.parse(response);
+            logger.info({ applicantId, eligible: validated.eligible }, 'Eligibility summary calculated');
+            return validated;
+        }
+        catch (error) {
+            const typedError = error instanceof Error ? error : new Error('Failed to calculate eligibility summary');
+            logger.error({ err: typedError, applicantId }, 'Failed to calculate eligibility summary');
+            throw typedError;
+        }
     }
 }
 exports.LoanEvaluationService = LoanEvaluationService;

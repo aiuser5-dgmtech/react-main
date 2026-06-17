@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE_URL } from '../config/api';
 import type { LoanDecision, LoanRequest } from '../types/loan-types';
 
 export function useLoanApproval() {
@@ -11,7 +12,7 @@ export function useLoanApproval() {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/loans/evaluate', {
+      const response = await fetch(`${API_BASE_URL}/api/loans/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
